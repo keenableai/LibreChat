@@ -51,6 +51,8 @@ export interface SearchResultData {
   peopleAlsoAsk?: PeopleAlsoAskResult[];
   relatedSearches?: Array<{ query: string }>;
   references?: ResultReference[];
+  /** Wall-clock duration (ms) of the web_search tool call. */
+  durationMs?: number;
   error?: string;
 }
 

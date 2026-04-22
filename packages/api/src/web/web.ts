@@ -23,6 +23,7 @@ const WEB_SEARCH_URL_KEYS = new Set<TWebSearchKeys>([
   'searxngInstanceUrl',
   'firecrawlApiUrl',
   'jinaApiUrl',
+  'keenableApiUrl',
 ]);
 
 /**
