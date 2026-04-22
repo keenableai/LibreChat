@@ -76,22 +76,41 @@ function SourceFaviconStack({ sources }: { sources: ValidSource[] }) {
   );
 }
 
+function extractQuery(args: unknown): string | undefined {
+  if (args == null) return undefined;
+  const raw =
+    typeof args === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(args) as Record<string, unknown>;
+          } catch {
+            return undefined;
+          }
+        })()
+      : (args as Record<string, unknown>);
+  const q = raw?.query;
+  return typeof q === 'string' && q.trim() ? q : undefined;
+}
+
 export default function WebSearch({
   initialProgress: progress = 0.1,
   isSubmitting,
   isLast,
   output,
   attachments,
+  args,
 }: {
   isLast?: boolean;
   isSubmitting: boolean;
   output?: string | null;
   initialProgress: number;
   attachments?: TAttachment[];
+  args?: unknown;
 }) {
   const localize = useLocalize();
   const { searchResults } = useSearchContext();
   const error = typeof output === 'string' && output.toLowerCase().includes('error processing');
+  const query = useMemo(() => extractQuery(args), [args]);
 
   // Server tool calls (srvtoolu_) never receive ON_RUN_STEP_COMPLETED, so progress
   // stays at the default 0.1. Treat the search as complete if attachments have results.
@@ -118,6 +137,22 @@ export default function WebSearch({
     }
     return '0';
   }, [attachments]);
+
+  const durationMs = useMemo((): number | undefined => {
+    if (!attachments) return undefined;
+    for (const att of attachments) {
+      if (att.type === Tools.web_search && att[Tools.web_search]) {
+        const d = att[Tools.web_search].durationMs;
+        if (typeof d === 'number' && Number.isFinite(d)) return d;
+      }
+    }
+    return undefined;
+  }, [attachments]);
+
+  const durationLabel = useMemo((): string | undefined => {
+    if (durationMs == null) return undefined;
+    return durationMs < 1000 ? `${durationMs} ms` : `${(durationMs / 1000).toFixed(1)} s`;
+  }, [durationMs]);
 
   const allSources = useMemo((): ValidSource[] => {
     if (attachments) {
@@ -218,6 +253,14 @@ export default function WebSearch({
             <Globe className="size-4 shrink-0 text-text-secondary" aria-hidden="true" />
           )}
           <span className="font-medium">{completedText}</span>
+          {query && (
+            <span className="ml-1 max-w-[360px] truncate text-xs text-text-secondary">
+              “{query}”
+            </span>
+          )}
+          {durationLabel && (
+            <span className="text-xs tabular-nums text-text-secondary">· {durationLabel}</span>
+          )}
           {hasSourceData && (
             <ChevronDown
               className={cn(
@@ -271,6 +314,9 @@ export default function WebSearch({
       <span className="tool-status-text shimmer font-medium text-text-secondary">
         {progressText}
       </span>
+      {query && (
+        <span className="max-w-[360px] truncate text-xs text-text-secondary">“{query}”</span>
+      )}
     </div>
   );
 }

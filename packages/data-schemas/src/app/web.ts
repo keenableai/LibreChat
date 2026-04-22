@@ -12,6 +12,11 @@ export const webSearchAuth = {
       /** Optional (0) */
       searxngApiKey: 0 as const,
     },
+    keenable: {
+      keenableApiKey: 1 as const,
+      /** Optional (0) */
+      keenableApiUrl: 0 as const,
+    },
   },
   scrapers: {
     firecrawl: {
@@ -23,6 +28,11 @@ export const webSearchAuth = {
     serper: {
       serperApiKey: 1 as const,
     },
+    keenable: {
+      keenableApiKey: 1 as const,
+      /** Optional (0) */
+      keenableApiUrl: 0 as const,
+    },
   },
   rerankers: {
     jina: {
@@ -31,6 +41,11 @@ export const webSearchAuth = {
       jinaApiUrl: 0 as const,
     },
     cohere: { cohereApiKey: 1 as const },
+    keenable: {
+      keenableApiKey: 1 as const,
+      /** Optional (0) */
+      keenableApiUrl: 0 as const,
+    },
   },
 };
 
@@ -72,6 +87,8 @@ export function loadWebSearchConfig(
   const jinaApiKey = config?.jinaApiKey ?? '${JINA_API_KEY}';
   const jinaApiUrl = config?.jinaApiUrl ?? '${JINA_API_URL}';
   const cohereApiKey = config?.cohereApiKey ?? '${COHERE_API_KEY}';
+  const keenableApiKey = config?.keenableApiKey ?? '${KEENABLE_API_KEY}';
+  const keenableApiUrl = config?.keenableApiUrl ?? '${KEENABLE_API_URL}';
   const safeSearch = config?.safeSearch ?? SafeSearchTypes.MODERATE;
 
   return {
@@ -80,6 +97,8 @@ export function loadWebSearchConfig(
     jinaApiKey,
     jinaApiUrl,
     cohereApiKey,
+    keenableApiKey,
+    keenableApiUrl,
     serperApiKey,
     searxngApiKey,
     firecrawlApiKey,

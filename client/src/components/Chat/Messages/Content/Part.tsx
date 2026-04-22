@@ -156,6 +156,7 @@ const Part = memo(function Part({
           isSubmitting={isSubmitting}
           attachments={attachments}
           isLast={isLast}
+          args={toolCall.args}
         />
       );
     } else if (isToolCall && (toolCall.name === 'file_search' || toolCall.name === 'retrieval')) {
