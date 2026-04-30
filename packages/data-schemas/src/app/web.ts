@@ -16,6 +16,8 @@ export const webSearchAuth = {
       keenableApiKey: 1 as const,
       /** Optional (0) */
       keenableApiUrl: 0 as const,
+      /** Optional (0) — selects which upstream engine Keenable uses (e.g. google/bing/exa). */
+      searchProfile: 0 as const,
     },
   },
   scrapers: {
@@ -89,6 +91,7 @@ export function loadWebSearchConfig(
   const cohereApiKey = config?.cohereApiKey ?? '${COHERE_API_KEY}';
   const keenableApiKey = config?.keenableApiKey ?? '${KEENABLE_API_KEY}';
   const keenableApiUrl = config?.keenableApiUrl ?? '${KEENABLE_API_URL}';
+  const searchProfile = config?.searchProfile ?? '${KEENABLE_SEARCH_PROFILE}';
   const safeSearch = config?.safeSearch ?? SafeSearchTypes.MODERATE;
 
   return {
@@ -99,6 +102,7 @@ export function loadWebSearchConfig(
     cohereApiKey,
     keenableApiKey,
     keenableApiUrl,
+    searchProfile,
     serperApiKey,
     searxngApiKey,
     firecrawlApiKey,

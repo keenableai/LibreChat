@@ -585,6 +585,12 @@ endpoints:
 #   # Content scrapers
 #   firecrawlApiKey: '${FIRECRAWL_API_KEY}'
 #   firecrawlApiUrl: '${FIRECRAWL_API_URL}'
+#   # Keenable search profile (optional, only when searchProvider: keenable).
+#   # Forwarded as the `profile` field on POST /v1/search.
+#   # Valid: default, keenable-gq, google, bing, brave, brave_llm, exa,
+#   #        exa_instant, tavily, tavily_fast, tavily_ultra_fast, perplexity,
+#   #        perplexity_pro, parallel, parallel_advanced, yandex
+#   searchProfile: 'google'
 
 # Memory configuration for user memories
 # memory:

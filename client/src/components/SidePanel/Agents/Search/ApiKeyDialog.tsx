@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, OGDialog, OGDialogTemplate } from '@librechat/client';
 import {
   AuthType,
   RerankerTypes,
+  SearchProfiles,
   SearchProviders,
   ScraperProviders,
   SearchCategories,
 } from 'librechat-data-provider';
 import type { SearchApiKeyFormData } from '~/hooks/Plugins/useAuthSearchTool';
-import type { UseFormRegister, UseFormHandleSubmit } from 'react-hook-form';
+import type { UseFormRegister, UseFormHandleSubmit, UseFormSetValue } from 'react-hook-form';
 import InputSection, { type DropdownOption } from './InputSection';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize } from '~/hooks';
@@ -22,6 +23,7 @@ export default function ApiKeyDialog({
   isToolAuthenticated,
   register,
   handleSubmit,
+  setValue,
   triggerRef,
   triggerRefs,
 }: {
@@ -33,6 +35,7 @@ export default function ApiKeyDialog({
   isToolAuthenticated: boolean;
   register: UseFormRegister<SearchApiKeyFormData>;
   handleSubmit: UseFormHandleSubmit<SearchApiKeyFormData>;
+  setValue?: UseFormSetValue<SearchApiKeyFormData>;
   triggerRef?: React.RefObject<HTMLInputElement | HTMLButtonElement>;
   triggerRefs?: React.RefObject<HTMLInputElement | HTMLButtonElement>[];
 }) {
@@ -47,6 +50,9 @@ export default function ApiKeyDialog({
   );
   const [selectedScraper, setSelectedScraper] = useState(
     config?.webSearch?.scraperProvider || ScraperProviders.FIRECRAWL,
+  );
+  const [selectedProfile, setSelectedProfile] = useState<string>(
+    (config?.webSearch?.searchProfile as string) || SearchProfiles.DEFAULT,
   );
 
   const providerOptions: DropdownOption[] = [
@@ -154,10 +160,17 @@ export default function ApiKeyDialog({
     },
   ];
 
+  const profileOptions: DropdownOption[] = Object.values(SearchProfiles).map((p) => ({
+    key: p,
+    label: p,
+    inputs: {},
+  }));
+
   const [dropdownOpen, setDropdownOpen] = useState({
     provider: false,
     reranker: false,
     scraper: false,
+    profile: false,
   });
 
   const providerAuthType = authTypes.find(([cat]) => cat === SearchCategories.PROVIDERS)?.[1];
@@ -175,6 +188,15 @@ export default function ApiKeyDialog({
   const handleScraperChange = (key: string) => {
     setSelectedScraper(key as ScraperProviders);
   };
+
+  const handleProfileChange = (key: string) => {
+    setSelectedProfile(key);
+    setValue?.('searchProfile', key);
+  };
+
+  useEffect(() => {
+    setValue?.('searchProfile', selectedProfile);
+  }, [setValue, selectedProfile]);
 
   return (
     <OGDialog
@@ -238,6 +260,23 @@ export default function ApiKeyDialog({
                     setDropdownOpen((prev) => ({ ...prev, reranker: open }))
                   }
                   dropdownKey="reranker"
+                />
+              )}
+
+              {/* Search Profile Section (only meaningful when provider is keenable) */}
+              {selectedProvider === SearchProviders.KEENABLE && (
+                <InputSection
+                  title="Search Profile"
+                  selectedKey={selectedProfile}
+                  onSelectionChange={handleProfileChange}
+                  dropdownOptions={profileOptions}
+                  showDropdown={true}
+                  register={register}
+                  dropdownOpen={dropdownOpen.profile}
+                  setDropdownOpen={(open) =>
+                    setDropdownOpen((prev) => ({ ...prev, profile: open }))
+                  }
+                  dropdownKey="profile"
                 />
               )}
             </form>

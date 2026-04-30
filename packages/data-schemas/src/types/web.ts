@@ -11,7 +11,8 @@ export type TWebSearchKeys =
   | 'jinaApiUrl'
   | 'cohereApiKey'
   | 'keenableApiKey'
-  | 'keenableApiUrl';
+  | 'keenableApiUrl'
+  | 'searchProfile';
 
 export type TWebSearchCategories =
   | SearchCategories.PROVIDERS

@@ -17,6 +17,8 @@ export type SearchApiKeyFormData = {
   jinaApiKey: string;
   jinaApiUrl: string;
   cohereApiKey: string;
+  // Keenable upstream-engine selector (sent as `profile` on POST /v1/search)
+  searchProfile: string;
 };
 
 const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
@@ -57,6 +59,7 @@ const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
         jinaApiKey: data.jinaApiKey,
         jinaApiUrl: data.jinaApiUrl,
         cohereApiKey: data.cohereApiKey,
+        searchProfile: data.searchProfile,
       }).reduce(
         (acc, [key, value]) => {
           if (value) {
