@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
 import { Button, OGDialog, OGDialogTemplate } from '@librechat/client';
 import {
   AuthType,
+  Constants,
   RerankerTypes,
   SearchProfiles,
   SearchProviders,
   ScraperProviders,
   SearchCategories,
+  LocalStorageKeys,
 } from 'librechat-data-provider';
 import type { SearchApiKeyFormData } from '~/hooks/Plugins/useAuthSearchTool';
 import type { UseFormRegister, UseFormHandleSubmit, UseFormSetValue } from 'react-hook-form';
 import InputSection, { type DropdownOption } from './InputSection';
 import { useGetStartupConfig } from '~/data-provider';
+import { ephemeralAgentByConvoId } from '~/store';
+import { setTimestampedValue } from '~/utils/timestamps';
+import { useBadgeRowContext } from '~/Providers';
 import { useLocalize } from '~/hooks';
 
 export default function ApiKeyDialog({
@@ -41,6 +47,9 @@ export default function ApiKeyDialog({
 }) {
   const localize = useLocalize();
   const { data: config } = useGetStartupConfig();
+  const ctx = useBadgeRowContext();
+  const convoKey = ctx?.conversationId ?? Constants.NEW_CONVO;
+  const [ephemeralAgent, setEphemeralAgent] = useRecoilState(ephemeralAgentByConvoId(convoKey));
 
   const [selectedProvider, setSelectedProvider] = useState(
     config?.webSearch?.searchProvider || SearchProviders.SERPER,
@@ -51,8 +60,12 @@ export default function ApiKeyDialog({
   const [selectedScraper, setSelectedScraper] = useState(
     config?.webSearch?.scraperProvider || ScraperProviders.FIRECRAWL,
   );
+  /** Per-conversation profile (stored in ephemeralAgent + localStorage so each
+   *  open tab keeps its own selection regardless of other tabs). */
   const [selectedProfile, setSelectedProfile] = useState<string>(
-    (config?.webSearch?.searchProfile as string) || SearchProfiles.DEFAULT,
+    ephemeralAgent?.web_search_profile ||
+      (config?.webSearch?.searchProfile as string) ||
+      SearchProfiles.DEFAULT,
   );
 
   const providerOptions: DropdownOption[] = [
@@ -192,6 +205,13 @@ export default function ApiKeyDialog({
   const handleProfileChange = (key: string) => {
     setSelectedProfile(key);
     setValue?.('searchProfile', key);
+    /** Persist to per-conversation ephemeralAgent so the chat-send payload
+     *  carries it through, and to localStorage so refresh keeps the selection. */
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_profile: key }));
+    setTimestampedValue(
+      `${LocalStorageKeys.LAST_WEB_SEARCH_PROFILE_}${convoKey}`,
+      JSON.stringify(key),
+    );
   };
 
   useEffect(() => {

@@ -329,6 +329,14 @@ const loadTools = async ({
         loadAuthValues,
         webSearchConfig: webSearch,
       });
+      /** Per-conversation Keenable search-profile override.
+       *  ApiKeyDialog writes the user's selection to `ephemeralAgent.web_search_profile`,
+       *  which the frontend ships in the chat-send body. Prefer that over any
+       *  user-level / yaml default so multiple open tabs each keep their own profile. */
+      const convoProfile = options?.req?.body?.ephemeralAgent?.web_search_profile;
+      if (typeof convoProfile === 'string' && convoProfile.length > 0) {
+        result.authResult.searchProfile = convoProfile;
+      }
       const { onSearchResults, onGetHighlights } = options?.[Tools.web_search] ?? {};
       requestedTools[tool] = async () => {
         toolContextMap[tool] = buildWebSearchContext();

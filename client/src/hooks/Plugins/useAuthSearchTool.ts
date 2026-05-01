@@ -50,6 +50,8 @@ const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
 
   const installTool = useCallback(
     (data: SearchApiKeyFormData) => {
+      // searchProfile intentionally omitted: it's per-conversation state on
+      // the ephemeralAgent (see ApiKeyDialog), not per-user plugin auth.
       const auth = Object.entries({
         serperApiKey: data.serperApiKey,
         searxngInstanceUrl: data.searxngInstanceUrl,
@@ -59,7 +61,6 @@ const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
         jinaApiKey: data.jinaApiKey,
         jinaApiUrl: data.jinaApiUrl,
         cohereApiKey: data.cohereApiKey,
-        searchProfile: data.searchProfile,
       }).reduce(
         (acc, [key, value]) => {
           if (value) {

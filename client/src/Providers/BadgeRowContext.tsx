@@ -98,11 +98,13 @@ export default function BadgeRowProvider({
 
       const codeToggleKey = `${LocalStorageKeys.LAST_CODE_TOGGLE_}${storageSuffix}`;
       const webSearchToggleKey = `${LocalStorageKeys.LAST_WEB_SEARCH_TOGGLE_}${storageSuffix}`;
+      const webSearchProfileKey = `${LocalStorageKeys.LAST_WEB_SEARCH_PROFILE_}${storageSuffix}`;
       const fileSearchToggleKey = `${LocalStorageKeys.LAST_FILE_SEARCH_TOGGLE_}${storageSuffix}`;
       const artifactsToggleKey = `${LocalStorageKeys.LAST_ARTIFACTS_TOGGLE_}${storageSuffix}`;
 
       const codeToggleValue = getTimestampedValue(codeToggleKey);
       const webSearchToggleValue = getTimestampedValue(webSearchToggleKey);
+      const webSearchProfileValue = getTimestampedValue(webSearchProfileKey);
       const fileSearchToggleValue = getTimestampedValue(fileSearchToggleKey);
       const artifactsToggleValue = getTimestampedValue(artifactsToggleKey);
 
@@ -121,6 +123,17 @@ export default function BadgeRowProvider({
           initialValues[Tools.web_search] = JSON.parse(webSearchToggleValue);
         } catch (e) {
           console.error('Failed to parse web search toggle value:', e);
+        }
+      }
+
+      if (webSearchProfileValue !== null) {
+        try {
+          const parsed = JSON.parse(webSearchProfileValue);
+          if (typeof parsed === 'string' && parsed.length > 0) {
+            initialValues['web_search_profile'] = parsed;
+          }
+        } catch (e) {
+          console.error('Failed to parse web search profile value:', e);
         }
       }
 
