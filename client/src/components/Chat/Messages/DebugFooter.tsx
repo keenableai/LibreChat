@@ -3,6 +3,7 @@ import { useRecoilValue } from 'recoil';
 import { Constants } from 'librechat-data-provider';
 import type { TMessage } from 'librechat-data-provider';
 import { ephemeralAgentByConvoId } from '~/store';
+import { useBadgeRowContext } from '~/Providers';
 
 /**
  * Renders a small red footer under each non-user message with the metrics
@@ -12,12 +13,23 @@ import { ephemeralAgentByConvoId } from '~/store';
  *
  * TTFT and total input tokens are not yet available without backend
  * instrumentation; they show as "—" for now.
+ *
+ * Reads debug_mode from BOTH the message's conversationId atom AND the
+ * BadgeRowContext's atom (typically the same, but they diverge briefly
+ * when a new conversation transitions from 'new' to its real UUID — the
+ * dialog wrote under 'new', the rendered message has the UUID).
  */
 function DebugFooter({ message }: { message: TMessage }) {
-  const convoKey = (message?.conversationId as string) ?? Constants.NEW_CONVO;
-  const ephemeralAgent = useRecoilValue(ephemeralAgentByConvoId(convoKey));
+  const ctx = useBadgeRowContext();
+  const messageConvoKey = (message?.conversationId as string) ?? Constants.NEW_CONVO;
+  const ctxConvoKey = ctx?.conversationId ?? Constants.NEW_CONVO;
+  const messageAgent = useRecoilValue(ephemeralAgentByConvoId(messageConvoKey));
+  const ctxAgent = useRecoilValue(ephemeralAgentByConvoId(ctxConvoKey));
+  const newAgent = useRecoilValue(ephemeralAgentByConvoId(Constants.NEW_CONVO));
+  const debugMode =
+    messageAgent?.debug_mode ?? ctxAgent?.debug_mode ?? newAgent?.debug_mode ?? false;
 
-  if (!ephemeralAgent?.debug_mode) {
+  if (!debugMode) {
     return null;
   }
   if (message?.isCreatedByUser) {
