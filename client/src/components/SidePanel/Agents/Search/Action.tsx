@@ -1,6 +1,6 @@
 import { KeyRoundIcon } from 'lucide-react';
 import { useRef } from 'react';
-import { AuthType, AgentCapabilities } from 'librechat-data-provider';
+import { AuthType, AgentCapabilities, SearchProviders } from 'librechat-data-provider';
 import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import {
   CircleHelpIcon,
@@ -12,6 +12,7 @@ import {
 } from '@librechat/client';
 import type { AgentForm } from '~/common';
 import { useLocalize, useSearchApiKeyForm } from '~/hooks';
+import { useGetStartupConfig } from '~/data-provider';
 import ApiKeyDialog from './ApiKeyDialog';
 import { ESide } from '~/common';
 import { cn } from '~/utils';
@@ -46,6 +47,8 @@ export default function Action({
 
   const webSearchIsEnabled = useWatch({ control, name: AgentCapabilities.web_search });
   const isUserProvided = authTypes?.some(([, authType]) => authType === AuthType.USER_PROVIDED);
+  const { data: startupConfig } = useGetStartupConfig();
+  const isKeenableProvider = startupConfig?.webSearch?.searchProvider === SearchProviders.KEENABLE;
 
   const handleCheckboxChange = (checked: boolean) => {
     if (isToolAuthenticated) {
@@ -90,7 +93,7 @@ export default function Action({
             {localize('com_ui_web_search')}
           </label>
           <div className="ml-2 flex gap-2">
-            {isUserProvided && (
+            {(isUserProvided || isKeenableProvider) && (
               <button
                 ref={apiKeyButtonRef}
                 type="button"
