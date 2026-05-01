@@ -60,16 +60,15 @@ export default function ApiKeyDialog({
   const [selectedScraper, setSelectedScraper] = useState(
     config?.webSearch?.scraperProvider || ScraperProviders.FIRECRAWL,
   );
-  /** Per-conversation profile (stored in ephemeralAgent + localStorage so each
-   *  open tab keeps its own selection regardless of other tabs). */
-  const [selectedProfile, setSelectedProfile] = useState<string>(
+  /** Derived directly from the recoil atom (NOT useState) so the value stays
+   *  correct after BadgeRowContext hydrates ephemeralAgent from localStorage.
+   *  Earlier we held this in useState which captured a stale `default` before
+   *  hydration finished, even though the request body shipped the real value. */
+  const selectedProfile =
     ephemeralAgent?.web_search_profile ||
-      (config?.webSearch?.searchProfile as string) ||
-      SearchProfiles.DEFAULT,
-  );
-  /** Per-conversation pro-mode (true = scrape + rerank top results, false =
-   *  snippet-only fast path). Default true. */
-  const [proMode, setProMode] = useState<boolean>(ephemeralAgent?.web_search_pro_mode ?? true);
+    (config?.webSearch?.searchProfile as string) ||
+    SearchProfiles.DEFAULT;
+  const proMode = ephemeralAgent?.web_search_pro_mode ?? true;
 
   const providerOptions: DropdownOption[] = [
     {
@@ -206,10 +205,10 @@ export default function ApiKeyDialog({
   };
 
   const handleProfileChange = (key: string) => {
-    setSelectedProfile(key);
-    setValue?.('searchProfile', key);
-    /** Persist to per-conversation ephemeralAgent so the chat-send payload
-     *  carries it through, and to localStorage so refresh keeps the selection. */
+    /** Persist to per-conversation ephemeralAgent (single source of truth)
+     *  + localStorage so refresh keeps the selection. selectedProfile is
+     *  derived from the atom so it updates in the next render without a
+     *  separate useState write. */
     setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_profile: key }));
     setTimestampedValue(
       `${LocalStorageKeys.LAST_WEB_SEARCH_PROFILE_}${convoKey}`,
@@ -218,7 +217,6 @@ export default function ApiKeyDialog({
   };
 
   const handleProModeChange = (next: boolean) => {
-    setProMode(next);
     setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_pro_mode: next }));
     setTimestampedValue(
       `${LocalStorageKeys.LAST_WEB_SEARCH_PRO_MODE_}${convoKey}`,
