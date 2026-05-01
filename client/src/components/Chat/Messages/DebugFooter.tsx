@@ -38,9 +38,20 @@ function DebugFooter({ message }: { message: TMessage }) {
 
   const created = message?.createdAt ? new Date(message.createdAt).getTime() : null;
   const updated = message?.updatedAt ? new Date(message.updatedAt).getTime() : null;
-  const latencyMs =
-    created != null && updated != null && updated > created ? updated - created : null;
-  const outTokens = message?.tokenCount;
+  const latencyMs = created != null && updated != null ? Math.max(0, updated - created) : null;
+  const m = message as unknown as Record<string, unknown>;
+  const outTokens =
+    typeof m?.tokenCount === 'number'
+      ? (m.tokenCount as number)
+      : typeof m?.summaryTokenCount === 'number'
+        ? (m.summaryTokenCount as number)
+        : null;
+  const inTokens =
+    typeof m?.promptTokens === 'number'
+      ? (m.promptTokens as number)
+      : typeof m?.inputTokens === 'number'
+        ? (m.inputTokens as number)
+        : null;
 
   const fmtSec = (ms: number | null) => (ms == null ? '—' : `${(ms / 1000).toFixed(2)}s`);
   const fmtTok = (t: number | null | undefined) => (t == null ? '—' : `${t}`);
@@ -50,17 +61,14 @@ function DebugFooter({ message }: { message: TMessage }) {
       className="mt-1 select-text font-mono text-xs text-red-500 dark:text-red-400"
       data-testid="debug-footer"
     >
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <span>TTFT: —</span>
-      {' · '}
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <span>e2e: {fmtSec(latencyMs)}</span>
-      {' · '}
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <span>in: —</span>
-      {' · '}
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <span>out: {fmtTok(outTokens)}</span>
+      {}
+      <span>{`TTFT: —`}</span>
+      {}
+      <span>{` · e2e: ${fmtSec(latencyMs)}`}</span>
+      {}
+      <span>{` · in: ${fmtTok(inTokens)}`}</span>
+      {}
+      <span>{` · out: ${fmtTok(outTokens)}`}</span>
     </div>
   );
 }
