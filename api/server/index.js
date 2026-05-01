@@ -1,4 +1,21 @@
 require('dotenv').config();
+
+// Suppress noisy langchain-core MessageChunk merge warnings emitted by
+// providers (Cerebras, Baseten, ...) that include `usage` on every stream
+// chunk. They fire hundreds of times per response and don't indicate a
+// real problem.
+const _origWarn = console.warn;
+console.warn = (...args) => {
+  const first = args[0];
+  if (
+    typeof first === 'string' &&
+    /already exists in this message chunk and value has unsupported type/.test(first)
+  ) {
+    return;
+  }
+  _origWarn(...args);
+};
+
 const fs = require('fs');
 const path = require('path');
 require('module-alias')({ base: path.resolve(__dirname, '..') });
