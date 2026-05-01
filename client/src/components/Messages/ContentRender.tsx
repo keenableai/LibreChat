@@ -9,6 +9,7 @@ import ContentParts from '~/components/Chat/Messages/Content/ContentParts';
 import PlaceholderRow from '~/components/Chat/Messages/ui/PlaceholderRow';
 import SiblingSwitch from '~/components/Chat/Messages/SiblingSwitch';
 import HoverButtons from '~/components/Chat/Messages/HoverButtons';
+import DebugFooter from '~/components/Chat/Messages/DebugFooter';
 import MessageIcon from '~/components/Chat/Messages/MessageIcon';
 import SubRow from '~/components/Chat/Messages/SubRow';
 import { fontSizeAtom } from '~/store/fontSize';
@@ -249,6 +250,7 @@ const ContentRender = memo(function ContentRender({
               />
             </SubRow>
           )}
+          <DebugFooter message={msg} />
         </div>
       </div>
     </div>
