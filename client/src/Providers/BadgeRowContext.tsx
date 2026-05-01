@@ -100,6 +100,7 @@ export default function BadgeRowProvider({
       const webSearchToggleKey = `${LocalStorageKeys.LAST_WEB_SEARCH_TOGGLE_}${storageSuffix}`;
       const webSearchProfileKey = `${LocalStorageKeys.LAST_WEB_SEARCH_PROFILE_}${storageSuffix}`;
       const webSearchProModeKey = `${LocalStorageKeys.LAST_WEB_SEARCH_PRO_MODE_}${storageSuffix}`;
+      const debugModeKey = `${LocalStorageKeys.LAST_DEBUG_MODE_}${storageSuffix}`;
       const fileSearchToggleKey = `${LocalStorageKeys.LAST_FILE_SEARCH_TOGGLE_}${storageSuffix}`;
       const artifactsToggleKey = `${LocalStorageKeys.LAST_ARTIFACTS_TOGGLE_}${storageSuffix}`;
 
@@ -107,6 +108,7 @@ export default function BadgeRowProvider({
       const webSearchToggleValue = getTimestampedValue(webSearchToggleKey);
       const webSearchProfileValue = getTimestampedValue(webSearchProfileKey);
       const webSearchProModeValue = getTimestampedValue(webSearchProModeKey);
+      const debugModeValue = getTimestampedValue(debugModeKey);
       const fileSearchToggleValue = getTimestampedValue(fileSearchToggleKey);
       const artifactsToggleValue = getTimestampedValue(artifactsToggleKey);
 
@@ -147,6 +149,17 @@ export default function BadgeRowProvider({
           }
         } catch (e) {
           console.error('Failed to parse web search pro-mode value:', e);
+        }
+      }
+
+      if (debugModeValue !== null) {
+        try {
+          const parsed = JSON.parse(debugModeValue);
+          if (typeof parsed === 'boolean') {
+            initialValues['debug_mode'] = parsed;
+          }
+        } catch (e) {
+          console.error('Failed to parse debug-mode value:', e);
         }
       }
 

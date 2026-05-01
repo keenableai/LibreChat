@@ -11,6 +11,7 @@ import { fontSizeAtom } from '~/store/fontSize';
 import SiblingSwitch from './SiblingSwitch';
 import MultiMessage from './MultiMessage';
 import HoverButtons from './HoverButtons';
+import DebugFooter from './DebugFooter';
 import SubRow from './SubRow';
 import store from '~/store';
 
@@ -173,6 +174,7 @@ export default function Message(props: TMessageProps) {
                     />
                   </SubRow>
                 )}
+                <DebugFooter message={message} />
               </div>
             </div>
           </div>

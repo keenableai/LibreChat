@@ -106,6 +106,9 @@ export type TEphemeralAgent = {
   /** When false, skip the per-source /v1/fetch + rerank phase and use only
    *  /v1/search snippets. Per-conversation, default true (full pro mode). */
   web_search_pro_mode?: boolean;
+  /** When true, the chat UI renders a small red footer under each assistant
+   *  message with TTFT, end-to-end latency, and token counts. Per-conversation. */
+  debug_mode?: boolean;
   file_search?: boolean;
   execute_code?: boolean;
   artifacts?: string;

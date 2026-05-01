@@ -69,6 +69,7 @@ export default function ApiKeyDialog({
     (config?.webSearch?.searchProfile as string) ||
     SearchProfiles.DEFAULT;
   const proMode = ephemeralAgent?.web_search_pro_mode ?? true;
+  const debugMode = ephemeralAgent?.debug_mode ?? false;
 
   const providerOptions: DropdownOption[] = [
     {
@@ -224,6 +225,11 @@ export default function ApiKeyDialog({
     );
   };
 
+  const handleDebugModeChange = (next: boolean) => {
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), debug_mode: next }));
+    setTimestampedValue(`${LocalStorageKeys.LAST_DEBUG_MODE_}${convoKey}`, JSON.stringify(next));
+  };
+
   useEffect(() => {
     setValue?.('searchProfile', selectedProfile);
   }, [setValue, selectedProfile]);
@@ -327,6 +333,22 @@ export default function ApiKeyDialog({
                   </div>
                 </>
               )}
+
+              {/* Debug Mode — independent of search provider */}
+              <div className="mb-6 flex items-center justify-between">
+                {}
+                <div className="text-md font-medium">{'Debug Mode'}</div>
+                <label className="flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 cursor-pointer"
+                    checked={debugMode}
+                    onChange={(e) => handleDebugModeChange(e.target.checked)}
+                  />
+                  {}
+                  <span>{'Show TTFT, latency, and token counts under each reply'}</span>
+                </label>
+              </div>
             </form>
           </>
         }
