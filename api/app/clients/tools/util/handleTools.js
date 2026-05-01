@@ -337,11 +337,17 @@ const loadTools = async ({
       if (typeof convoProfile === 'string' && convoProfile.length > 0) {
         result.authResult.searchProfile = convoProfile;
       }
+      /** Per-conversation pro-mode toggle. When false, set topResults: 0 so
+       *  @librechat/agents skips the per-source /v1/fetch + rerank phase
+       *  entirely (snippet-only fast path). */
+      const convoProMode = options?.req?.body?.ephemeralAgent?.web_search_pro_mode;
+      const overrideTopResults = convoProMode === false ? { topResults: 0 } : {};
       const { onSearchResults, onGetHighlights } = options?.[Tools.web_search] ?? {};
       requestedTools[tool] = async () => {
         toolContextMap[tool] = buildWebSearchContext();
         return createSearchTool({
           ...result.authResult,
+          ...overrideTopResults,
           onSearchResults,
           onGetHighlights,
           logger,

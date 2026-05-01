@@ -67,6 +67,9 @@ export default function ApiKeyDialog({
       (config?.webSearch?.searchProfile as string) ||
       SearchProfiles.DEFAULT,
   );
+  /** Per-conversation pro-mode (true = scrape + rerank top results, false =
+   *  snippet-only fast path). Default true. */
+  const [proMode, setProMode] = useState<boolean>(ephemeralAgent?.web_search_pro_mode ?? true);
 
   const providerOptions: DropdownOption[] = [
     {
@@ -214,6 +217,15 @@ export default function ApiKeyDialog({
     );
   };
 
+  const handleProModeChange = (next: boolean) => {
+    setProMode(next);
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_pro_mode: next }));
+    setTimestampedValue(
+      `${LocalStorageKeys.LAST_WEB_SEARCH_PRO_MODE_}${convoKey}`,
+      JSON.stringify(next),
+    );
+  };
+
   useEffect(() => {
     setValue?.('searchProfile', selectedProfile);
   }, [setValue, selectedProfile]);
@@ -285,19 +297,37 @@ export default function ApiKeyDialog({
 
               {/* Search Profile Section (only meaningful when provider is keenable) */}
               {selectedProvider === SearchProviders.KEENABLE && (
-                <InputSection
-                  title="Search Profile"
-                  selectedKey={selectedProfile}
-                  onSelectionChange={handleProfileChange}
-                  dropdownOptions={profileOptions}
-                  showDropdown={true}
-                  register={register}
-                  dropdownOpen={dropdownOpen.profile}
-                  setDropdownOpen={(open) =>
-                    setDropdownOpen((prev) => ({ ...prev, profile: open }))
-                  }
-                  dropdownKey="profile"
-                />
+                <>
+                  <InputSection
+                    title="Search Profile"
+                    selectedKey={selectedProfile}
+                    onSelectionChange={handleProfileChange}
+                    dropdownOptions={profileOptions}
+                    showDropdown={true}
+                    register={register}
+                    dropdownOpen={dropdownOpen.profile}
+                    setDropdownOpen={(open) =>
+                      setDropdownOpen((prev) => ({ ...prev, profile: open }))
+                    }
+                    dropdownKey="profile"
+                  />
+                  <div className="mb-6 flex items-center justify-between">
+                    {/* eslint-disable-next-line i18next/no-literal-string */}
+                    <div className="text-md font-medium">Pro Mode</div>
+                    <label className="flex items-center gap-2 text-sm text-text-secondary">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 cursor-pointer"
+                        checked={proMode}
+                        onChange={(e) => handleProModeChange(e.target.checked)}
+                      />
+                      {}
+                      <span>
+                        {proMode ? 'Scrape + rerank top results' : 'Snippets only (fast)'}
+                      </span>
+                    </label>
+                  </div>
+                </>
               )}
             </form>
           </>

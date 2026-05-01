@@ -1978,6 +1978,8 @@ export enum LocalStorageKeys {
   LAST_WEB_SEARCH_TOGGLE_ = 'LAST_WEB_SEARCH_TOGGLE_',
   /** Last selected Keenable search profile per conversation ID */
   LAST_WEB_SEARCH_PROFILE_ = 'LAST_WEB_SEARCH_PROFILE_',
+  /** Last per-conversation pro-mode toggle (false = snippet-only) */
+  LAST_WEB_SEARCH_PRO_MODE_ = 'LAST_WEB_SEARCH_PRO_MODE_',
   /** Last checked toggle for File Search per conversation ID */
   LAST_FILE_SEARCH_TOGGLE_ = 'LAST_FILE_SEARCH_TOGGLE_',
   /** Last checked toggle for Artifacts per conversation ID */

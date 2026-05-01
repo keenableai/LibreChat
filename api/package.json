@@ -44,7 +44,7 @@
     "@google/genai": "^1.19.0",
     "@keyv/redis": "^4.3.3",
     "@langchain/core": "^0.3.80",
-    "@librechat/agents": "github:keenableai/agents#61203c3",
+    "@librechat/agents": "github:keenableai/agents#b86372e",
     "@librechat/api": "*",
     "@librechat/data-schemas": "*",
     "@microsoft/microsoft-graph-client": "^3.0.7",

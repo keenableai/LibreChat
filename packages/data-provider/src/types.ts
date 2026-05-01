@@ -103,6 +103,9 @@ export type TEphemeralAgent = {
    *  `profile` body field on POST /v1/search; per-conversation so multiple
    *  open tabs don't trample each other. */
   web_search_profile?: string;
+  /** When false, skip the per-source /v1/fetch + rerank phase and use only
+   *  /v1/search snippets. Per-conversation, default true (full pro mode). */
+  web_search_pro_mode?: boolean;
   file_search?: boolean;
   execute_code?: boolean;
   artifacts?: string;
