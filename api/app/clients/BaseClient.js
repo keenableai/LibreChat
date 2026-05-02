@@ -667,7 +667,12 @@ class BaseClient {
       user,
     );
     this.savedMessageIds.add(responseMessage.messageId);
-    delete responseMessage.tokenCount;
+    // Previously: `delete responseMessage.tokenCount` here stripped output
+    // token count from the in-memory response before sending the final SSE
+    // event to the client. The DB save (above) already captured it, but the
+    // streamed response lost it, so the client UI never saw the count without
+    // a manual conversation refetch. Keeping it on the in-memory object so
+    // the Debug Mode footer (and any other consumer) can read it directly.
     return responseMessage;
   }
 
