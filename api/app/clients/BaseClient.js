@@ -626,16 +626,9 @@ class BaseClient {
             : 0;
       responseMessage.promptTokens = pickedInput;
 
-      logger.info('[BaseClient] Response token usage', {
-        messageId: responseMessage.messageId,
-        model: responseMessage.model,
-        aggregateInput,
-        promptTokens,
-        pickedInput,
-        completionTokens,
-        usageInputKey: this.inputTokensKey,
-        usagePresent: usage != null,
-      });
+      logger.info(
+        `[BaseClient] Response token usage messageId=${responseMessage.messageId} model=${responseMessage.model} aggregateInput=${aggregateInput} promptTokens=${promptTokens} pickedInput=${pickedInput} completionTokens=${completionTokens} usageInputKey=${this.inputTokensKey} usagePresent=${usage != null} usageJson=${JSON.stringify(usage)}`,
+      );
     }
 
     if (userMessagePromise) {
