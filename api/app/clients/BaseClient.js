@@ -612,6 +612,14 @@ class BaseClient {
         });
       }
 
+      /** Surface input-token count on the in-memory response so the debug
+       *  footer can read it. For agents this is a LangFuse-style cross-step
+       *  sum (see AgentClient.getAggregateUsage); for non-agent clients it
+       *  falls back to the single-call promptTokens estimate. */
+      const aggregateInput = usage != null ? Number(usage[this.inputTokensKey]) : 0;
+      responseMessage.promptTokens =
+        Number.isFinite(aggregateInput) && aggregateInput > 0 ? aggregateInput : promptTokens;
+
       logger.debug('[BaseClient] Response token usage', {
         messageId: responseMessage.messageId,
         model: responseMessage.model,

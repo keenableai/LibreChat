@@ -2,22 +2,22 @@ import React, { memo } from 'react';
 import { useRecoilValue } from 'recoil';
 import { Constants } from 'librechat-data-provider';
 import type { TMessage } from 'librechat-data-provider';
-import { ephemeralAgentByConvoId } from '~/store';
+import { ephemeralAgentByConvoId, messageMetricsByIdAtom } from '~/store';
 import { useBadgeRowContext } from '~/Providers';
 
 /**
- * Renders a small red footer under each non-user message with the metrics
- * that are easily extractable from the message object:
- *  - End-to-end latency (updatedAt − createdAt)
- *  - Output token count (message.tokenCount)
+ * Renders a small red footer under each non-user message with timing and
+ * token metrics for debug mode:
+ *  - TTFT  — time from submit to the first stream event of any kind
+ *            (thinking start, tool call, content delta).
+ *  - TTFVT — time from submit to the first user-visible content token.
+ *  - e2e   — time from submit to stream completion.
+ *  - in    — total input tokens summed across every LLM generation in the
+ *            run (LangFuse-style trace aggregate).
+ *  - out   — total output tokens summed across every LLM generation.
  *
- * TTFT and total input tokens are not yet available without backend
- * instrumentation; they show as "—" for now.
- *
- * Reads debug_mode from BOTH the message's conversationId atom AND the
- * BadgeRowContext's atom (typically the same, but they diverge briefly
- * when a new conversation transitions from 'new' to its real UUID — the
- * dialog wrote under 'new', the rendered message has the UUID).
+ * Timings are captured client-side in the SSE pipeline; tokens come from
+ * the backend on the streamed responseMessage.
  */
 function DebugFooter({ message }: { message: TMessage }) {
   const ctx = useBadgeRowContext();
@@ -29,6 +29,8 @@ function DebugFooter({ message }: { message: TMessage }) {
   const debugMode =
     messageAgent?.debug_mode ?? ctxAgent?.debug_mode ?? newAgent?.debug_mode ?? false;
 
+  const metrics = useRecoilValue(messageMetricsByIdAtom(message?.messageId ?? ''));
+
   if (!debugMode) {
     return null;
   }
@@ -36,9 +38,19 @@ function DebugFooter({ message }: { message: TMessage }) {
     return null;
   }
 
-  const created = message?.createdAt ? new Date(message.createdAt).getTime() : null;
-  const updated = message?.updatedAt ? new Date(message.updatedAt).getTime() : null;
-  const latencyMs = created != null && updated != null ? Math.max(0, updated - created) : null;
+  const ttftMs =
+    metrics.firstTokenAt != null && metrics.submittedAt != null
+      ? Math.max(0, metrics.firstTokenAt - metrics.submittedAt)
+      : null;
+  const ttfvtMs =
+    metrics.firstVisibleAt != null && metrics.submittedAt != null
+      ? Math.max(0, metrics.firstVisibleAt - metrics.submittedAt)
+      : null;
+  const e2eMs =
+    metrics.finishedAt != null && metrics.submittedAt != null
+      ? Math.max(0, metrics.finishedAt - metrics.submittedAt)
+      : null;
+
   const m = message as unknown as Record<string, unknown>;
   const outTokens =
     typeof m?.tokenCount === 'number'
@@ -61,13 +73,10 @@ function DebugFooter({ message }: { message: TMessage }) {
       className="mt-1 select-text font-mono text-xs text-red-500 dark:text-red-400"
       data-testid="debug-footer"
     >
-      {}
-      <span>{`TTFT: —`}</span>
-      {}
-      <span>{` · e2e: ${fmtSec(latencyMs)}`}</span>
-      {}
+      <span>{`TTFT: ${fmtSec(ttftMs)}`}</span>
+      <span>{` · TTFVT: ${fmtSec(ttfvtMs)}`}</span>
+      <span>{` · e2e: ${fmtSec(e2eMs)}`}</span>
       <span>{` · in: ${fmtTok(inTokens)}`}</span>
-      {}
       <span>{` · out: ${fmtTok(outTokens)}`}</span>
     </div>
   );

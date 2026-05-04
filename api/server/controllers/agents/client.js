@@ -681,10 +681,38 @@ class AgentClient extends BaseClient {
   }
 
   /**
-   * Get stream usage as returned by this client's API response.
+   * LangFuse-style aggregate of all generations in this run: sum of
+   * input_tokens and output_tokens across every LLM call (initial,
+   * post-tool-result, summarization). Used by the debug footer's
+   * `in:` / `out:` fields so they reflect total tokens the user paid
+   * for across multi-step agent runs, not just the first call.
+   * @returns {UsageMetadata}
+   */
+  getAggregateUsage() {
+    const acc = { input_tokens: 0, output_tokens: 0 };
+    if (!Array.isArray(this.collectedUsage)) {
+      return acc;
+    }
+    for (const u of this.collectedUsage) {
+      if (!u) {
+        continue;
+      }
+      acc.input_tokens += Number(u.input_tokens) || 0;
+      acc.output_tokens += Number(u.output_tokens) || 0;
+    }
+    return acc;
+  }
+
+  /**
+   * Returns LangFuse-style cross-step aggregate when collectedUsage is
+   * populated; otherwise falls back to the billing-shaped this.usage.
    * @returns {UsageMetadata} The stream usage object.
    */
   getStreamUsage() {
+    const aggregate = this.getAggregateUsage();
+    if (aggregate.input_tokens > 0 || aggregate.output_tokens > 0) {
+      return aggregate;
+    }
     return this.usage;
   }
 
