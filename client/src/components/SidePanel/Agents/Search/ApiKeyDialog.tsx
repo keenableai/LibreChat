@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
 import { Button, OGDialog, OGDialogTemplate } from '@librechat/client';
 import {
   AuthType,
+  Constants,
   RerankerTypes,
+  SearchProfiles,
   SearchProviders,
   ScraperProviders,
   SearchCategories,
+  LocalStorageKeys,
 } from 'librechat-data-provider';
 import type { SearchApiKeyFormData } from '~/hooks/Plugins/useAuthSearchTool';
-import type { UseFormRegister, UseFormHandleSubmit } from 'react-hook-form';
+import type { UseFormRegister, UseFormHandleSubmit, UseFormSetValue } from 'react-hook-form';
 import InputSection, { type DropdownOption } from './InputSection';
 import { useGetStartupConfig } from '~/data-provider';
+import { ephemeralAgentByConvoId } from '~/store';
+import { setTimestampedValue } from '~/utils/timestamps';
+import { useBadgeRowContext } from '~/Providers';
 import { useLocalize } from '~/hooks';
 
 export default function ApiKeyDialog({
@@ -22,6 +29,7 @@ export default function ApiKeyDialog({
   isToolAuthenticated,
   register,
   handleSubmit,
+  setValue,
   triggerRef,
   triggerRefs,
 }: {
@@ -33,11 +41,15 @@ export default function ApiKeyDialog({
   isToolAuthenticated: boolean;
   register: UseFormRegister<SearchApiKeyFormData>;
   handleSubmit: UseFormHandleSubmit<SearchApiKeyFormData>;
+  setValue?: UseFormSetValue<SearchApiKeyFormData>;
   triggerRef?: React.RefObject<HTMLInputElement | HTMLButtonElement>;
   triggerRefs?: React.RefObject<HTMLInputElement | HTMLButtonElement>[];
 }) {
   const localize = useLocalize();
   const { data: config } = useGetStartupConfig();
+  const ctx = useBadgeRowContext();
+  const convoKey = ctx?.conversationId ?? Constants.NEW_CONVO;
+  const [ephemeralAgent, setEphemeralAgent] = useRecoilState(ephemeralAgentByConvoId(convoKey));
 
   const [selectedProvider, setSelectedProvider] = useState(
     config?.webSearch?.searchProvider || SearchProviders.SERPER,
@@ -48,6 +60,16 @@ export default function ApiKeyDialog({
   const [selectedScraper, setSelectedScraper] = useState(
     config?.webSearch?.scraperProvider || ScraperProviders.FIRECRAWL,
   );
+  /** Derived directly from the recoil atom (NOT useState) so the value stays
+   *  correct after BadgeRowContext hydrates ephemeralAgent from localStorage.
+   *  Earlier we held this in useState which captured a stale `default` before
+   *  hydration finished, even though the request body shipped the real value. */
+  const selectedProfile =
+    ephemeralAgent?.web_search_profile ||
+    (config?.webSearch?.searchProfile as string) ||
+    SearchProfiles.DEFAULT;
+  const proMode = ephemeralAgent?.web_search_pro_mode ?? true;
+  const debugMode = ephemeralAgent?.debug_mode ?? false;
 
   const providerOptions: DropdownOption[] = [
     {
@@ -154,10 +176,17 @@ export default function ApiKeyDialog({
     },
   ];
 
+  const profileOptions: DropdownOption[] = Object.values(SearchProfiles).map((p) => ({
+    key: p,
+    label: p,
+    inputs: {},
+  }));
+
   const [dropdownOpen, setDropdownOpen] = useState({
     provider: false,
     reranker: false,
     scraper: false,
+    profile: false,
   });
 
   const providerAuthType = authTypes.find(([cat]) => cat === SearchCategories.PROVIDERS)?.[1];
@@ -175,6 +204,35 @@ export default function ApiKeyDialog({
   const handleScraperChange = (key: string) => {
     setSelectedScraper(key as ScraperProviders);
   };
+
+  const handleProfileChange = (key: string) => {
+    /** Persist to per-conversation ephemeralAgent (single source of truth)
+     *  + localStorage so refresh keeps the selection. selectedProfile is
+     *  derived from the atom so it updates in the next render without a
+     *  separate useState write. */
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_profile: key }));
+    setTimestampedValue(
+      `${LocalStorageKeys.LAST_WEB_SEARCH_PROFILE_}${convoKey}`,
+      JSON.stringify(key),
+    );
+  };
+
+  const handleProModeChange = (next: boolean) => {
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), web_search_pro_mode: next }));
+    setTimestampedValue(
+      `${LocalStorageKeys.LAST_WEB_SEARCH_PRO_MODE_}${convoKey}`,
+      JSON.stringify(next),
+    );
+  };
+
+  const handleDebugModeChange = (next: boolean) => {
+    setEphemeralAgent((prev) => ({ ...(prev ?? {}), debug_mode: next }));
+    setTimestampedValue(`${LocalStorageKeys.LAST_DEBUG_MODE_}${convoKey}`, JSON.stringify(next));
+  };
+
+  useEffect(() => {
+    setValue?.('searchProfile', selectedProfile);
+  }, [setValue, selectedProfile]);
 
   return (
     <OGDialog
@@ -240,6 +298,57 @@ export default function ApiKeyDialog({
                   dropdownKey="reranker"
                 />
               )}
+
+              {/* Search Profile Section (only meaningful when provider is keenable) */}
+              {selectedProvider === SearchProviders.KEENABLE && (
+                <>
+                  <InputSection
+                    title="Search Profile"
+                    selectedKey={selectedProfile}
+                    onSelectionChange={handleProfileChange}
+                    dropdownOptions={profileOptions}
+                    showDropdown={true}
+                    register={register}
+                    dropdownOpen={dropdownOpen.profile}
+                    setDropdownOpen={(open) =>
+                      setDropdownOpen((prev) => ({ ...prev, profile: open }))
+                    }
+                    dropdownKey="profile"
+                  />
+                  <div className="mb-6 flex items-center justify-between">
+                    {/* eslint-disable-next-line i18next/no-literal-string */}
+                    <div className="text-md font-medium">Pro Mode</div>
+                    <label className="flex items-center gap-2 text-sm text-text-secondary">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 cursor-pointer"
+                        checked={proMode}
+                        onChange={(e) => handleProModeChange(e.target.checked)}
+                      />
+                      {}
+                      <span>
+                        {proMode ? 'Scrape + rerank top results' : 'Snippets only (fast)'}
+                      </span>
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* Debug Mode — independent of search provider */}
+              <div className="mb-6 flex items-center justify-between">
+                {}
+                <div className="text-md font-medium">{'Debug Mode'}</div>
+                <label className="flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 cursor-pointer"
+                    checked={debugMode}
+                    onChange={(e) => handleDebugModeChange(e.target.checked)}
+                  />
+                  {}
+                  <span>{'Show TTFT, latency, and token counts under each reply'}</span>
+                </label>
+              </div>
             </form>
           </>
         }

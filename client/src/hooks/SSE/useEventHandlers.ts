@@ -6,6 +6,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   QueryKeys,
   Constants,
+  StepEvents,
   EndpointURLs,
   ContentTypes,
   tPresetSchema,
@@ -34,6 +35,7 @@ import {
   findConversationInInfinite,
 } from '~/utils';
 import { startupConfigKey, queueTitleGeneration } from '~/data-provider';
+import { useRecordMessageMetric, useCopyMessageMetrics } from '~/store/messageMetrics';
 import useAttachmentHandler from '~/hooks/SSE/useAttachmentHandler';
 import useContentHandler from '~/hooks/SSE/useContentHandler';
 import useStepHandler from '~/hooks/SSE/useStepHandler';
@@ -187,8 +189,17 @@ export default function useEventHandlers({
   const { conversationId: paramId } = useParams();
   const { token } = useAuthContext();
 
-  const { contentHandler, resetContentHandler } = useContentHandler({ setMessages, getMessages });
-  const { stepHandler, clearStepMaps, syncStepMessage } = useStepHandler({
+  const recordMessageMetric = useRecordMessageMetric();
+  const copyMessageMetrics = useCopyMessageMetrics();
+  const { contentHandler: rawContentHandler, resetContentHandler } = useContentHandler({
+    setMessages,
+    getMessages,
+  });
+  const {
+    stepHandler: rawStepHandler,
+    clearStepMaps,
+    syncStepMessage,
+  } = useStepHandler({
     setMessages,
     getMessages,
     announcePolite,
@@ -197,6 +208,55 @@ export default function useEventHandlers({
   });
   const attachmentHandler = useAttachmentHandler(queryClient);
 
+  /**
+   * Wrap contentHandler to record TTFT (any first event) and TTFVT
+   * (first visible text content). Tool calls and thinking count toward
+   * TTFT but not TTFVT.
+   */
+  const contentHandler = useCallback(
+    (params: Parameters<typeof rawContentHandler>[0]) => {
+      const responseMessageId = params?.submission?.initialResponse?.messageId;
+      if (responseMessageId) {
+        const now = Date.now();
+        recordMessageMetric(responseMessageId, { firstTokenAt: now });
+        if (params?.data?.type === ContentTypes.TEXT) {
+          recordMessageMetric(responseMessageId, { firstVisibleAt: now });
+        }
+      }
+      return rawContentHandler(params);
+    },
+    [rawContentHandler, recordMessageMetric],
+  );
+
+  /**
+   * Wrap stepHandler to record TTFT (any event) and TTFVT (only when the
+   * step carries visible text content — message deltas with type 'text').
+   * Tool calls and thinking bump TTFT only.
+   */
+  const stepHandler = useCallback(
+    (...args: Parameters<typeof rawStepHandler>) => {
+      const stepEvent = args[0] as { event?: string; data?: unknown } | undefined;
+      const submission = args[1] as EventSubmission | undefined;
+      const responseMessageId = submission?.initialResponse?.messageId;
+      if (responseMessageId) {
+        const now = Date.now();
+        recordMessageMetric(responseMessageId, { firstTokenAt: now });
+
+        if (stepEvent?.event === StepEvents.ON_MESSAGE_DELTA) {
+          const delta = stepEvent.data as { delta?: { content?: unknown } } | undefined;
+          const content = delta?.delta?.content;
+          const contentPart = Array.isArray(content) ? content[0] : content;
+          const partType = (contentPart as { type?: string } | undefined)?.type;
+          if (partType === ContentTypes.TEXT || partType === ContentTypes.TEXT_DELTA) {
+            recordMessageMetric(responseMessageId, { firstVisibleAt: now });
+          }
+        }
+      }
+      return rawStepHandler(...args);
+    },
+    [rawStepHandler, recordMessageMetric],
+  );
+
   const messageHandler = useCallback(
     (data: string | undefined, submission: EventSubmission) => {
       const { messages, userMessage, initialResponse, isRegenerate = false } = submission;
@@ -204,6 +264,12 @@ export default function useEventHandlers({
       setIsSubmitting(true);
 
       const currentTime = Date.now();
+      if (initialResponse?.messageId) {
+        recordMessageMetric(initialResponse.messageId, {
+          firstTokenAt: currentTime,
+          firstVisibleAt: currentTime,
+        });
+      }
       if (currentTime - lastAnnouncementTimeRef.current > MESSAGE_UPDATE_INTERVAL) {
         announcePolite({ message: 'composing', isStatus: true });
         lastAnnouncementTimeRef.current = currentTime;
@@ -228,7 +294,7 @@ export default function useEventHandlers({
         ]);
       }
     },
-    [setMessages, announcePolite, setIsSubmitting],
+    [setMessages, announcePolite, setIsSubmitting, recordMessageMetric],
   );
 
   const cancelHandler = useCallback(
@@ -263,9 +329,28 @@ export default function useEventHandlers({
         });
       }
 
+      const finishedAt = Date.now();
+      const cancelInitialId = submission.initialResponse?.messageId;
+      const cancelResponseId = responseMessage?.messageId;
+      if (cancelInitialId) {
+        recordMessageMetric(cancelInitialId, { finishedAt });
+      }
+      if (cancelResponseId) {
+        copyMessageMetrics(cancelInitialId, cancelResponseId);
+        recordMessageMetric(cancelResponseId, { finishedAt });
+      }
+
       setIsSubmitting(false);
     },
-    [setMessages, setConversation, isAddedRequest, queryClient, setIsSubmitting],
+    [
+      setMessages,
+      setConversation,
+      isAddedRequest,
+      queryClient,
+      setIsSubmitting,
+      recordMessageMetric,
+      copyMessageMetrics,
+    ],
   );
 
   const syncHandler = useCallback(
@@ -597,6 +682,16 @@ export default function useEventHandlers({
           }
         }
       } finally {
+        const finishedAt = Date.now();
+        const initialId = submission.initialResponse?.messageId;
+        const respId = responseMessage?.messageId;
+        if (initialId) {
+          recordMessageMetric(initialId, { finishedAt });
+        }
+        if (respId) {
+          copyMessageMetrics(initialId, respId);
+          recordMessageMetric(respId, { finishedAt });
+        }
         setShowStopButton(false);
         setIsSubmitting(false);
       }
@@ -615,6 +710,8 @@ export default function useEventHandlers({
       location.pathname,
       applyAgentTemplate,
       attachmentHandler,
+      recordMessageMetric,
+      copyMessageMetrics,
     ],
   );
 

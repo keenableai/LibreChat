@@ -13,6 +13,7 @@ export interface IMessage extends Document {
   invocationId?: number;
   parentMessageId?: string | null;
   tokenCount?: number;
+  promptTokens?: number;
   summaryTokenCount?: number;
   sender?: string;
   text?: string;

@@ -44,6 +44,9 @@ const messageSchema: Schema<IMessage> = new Schema(
     tokenCount: {
       type: Number,
     },
+    promptTokens: {
+      type: Number,
+    },
     summaryTokenCount: {
       type: Number,
     },

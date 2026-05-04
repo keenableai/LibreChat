@@ -612,12 +612,23 @@ class BaseClient {
         });
       }
 
-      logger.debug('[BaseClient] Response token usage', {
-        messageId: responseMessage.messageId,
-        model: responseMessage.model,
-        promptTokens,
-        completionTokens,
-      });
+      /** Surface input-token count on the in-memory response so the debug
+       *  footer can read it. For agents this is a LangFuse-style cross-step
+       *  sum (see AgentClient.getAggregateUsage); for non-agent clients it
+       *  falls back to the single-call promptTokens estimate. */
+      const aggregateInput = usage != null ? Number(usage[this.inputTokensKey]) : NaN;
+      const promptTokensNum = Number(promptTokens);
+      const pickedInput =
+        Number.isFinite(aggregateInput) && aggregateInput > 0
+          ? aggregateInput
+          : Number.isFinite(promptTokensNum) && promptTokensNum > 0
+            ? promptTokensNum
+            : 0;
+      responseMessage.promptTokens = pickedInput;
+
+      logger.info(
+        `[BaseClient] Response token usage messageId=${responseMessage.messageId} model=${responseMessage.model} aggregateInput=${aggregateInput} promptTokens=${promptTokens} pickedInput=${pickedInput} completionTokens=${completionTokens} usageInputKey=${this.inputTokensKey} usagePresent=${usage != null} usageJson=${JSON.stringify(usage)}`,
+      );
     }
 
     if (userMessagePromise) {
@@ -667,7 +678,12 @@ class BaseClient {
       user,
     );
     this.savedMessageIds.add(responseMessage.messageId);
-    delete responseMessage.tokenCount;
+    // Previously: `delete responseMessage.tokenCount` here stripped output
+    // token count from the in-memory response before sending the final SSE
+    // event to the client. The DB save (above) already captured it, but the
+    // streamed response lost it, so the client UI never saw the count without
+    // a manual conversation refetch. Keeping it on the in-memory object so
+    // the Debug Mode footer (and any other consumer) can read it directly.
     return responseMessage;
   }
 

@@ -865,6 +865,7 @@ export type TStartupConfig = {
     searchProvider?: SearchProviders;
     scraperProvider?: ScraperProviders;
     rerankerType?: RerankerTypes;
+    searchProfile?: SearchProfiles | string;
   };
   mcpServers?: Record<
     string,
@@ -918,6 +919,31 @@ export enum RerankerTypes {
   KEENABLE = 'keenable',
 }
 
+/**
+ * Keenable search profiles. Forwarded as the `profile` field on POST /v1/search
+ * when `searchProvider` is `keenable`. Each value selects a different upstream
+ * search engine on the Keenable backend; values match the wire format the
+ * Keenable API expects (verified live, all 16 return 200).
+ */
+export enum SearchProfiles {
+  DEFAULT = 'default',
+  KEENABLE_GQ = 'keenable-gq',
+  GOOGLE = 'google',
+  BING = 'bing',
+  BRAVE = 'brave',
+  BRAVE_LLM = 'brave_llm',
+  EXA = 'exa',
+  EXA_INSTANT = 'exa_instant',
+  TAVILY = 'tavily',
+  TAVILY_FAST = 'tavily_fast',
+  TAVILY_ULTRA_FAST = 'tavily_ultra_fast',
+  PERPLEXITY = 'perplexity',
+  PERPLEXITY_PRO = 'perplexity_pro',
+  PARALLEL = 'parallel',
+  PARALLEL_ADVANCED = 'parallel_advanced',
+  YANDEX = 'yandex',
+}
+
 export enum SafeSearchTypes {
   OFF = 0,
   MODERATE = 1,
@@ -939,6 +965,7 @@ export const webSearchSchema = z.object({
   searchProvider: z.nativeEnum(SearchProviders).optional(),
   scraperProvider: z.nativeEnum(ScraperProviders).optional(),
   rerankerType: z.nativeEnum(RerankerTypes).optional(),
+  searchProfile: z.string().optional().default('${KEENABLE_SEARCH_PROFILE}'),
   scraperTimeout: z.number().int().nonnegative().optional(),
   safeSearch: z.nativeEnum(SafeSearchTypes).default(SafeSearchTypes.MODERATE),
   firecrawlOptions: z
@@ -1949,6 +1976,12 @@ export enum LocalStorageKeys {
   LAST_CODE_TOGGLE_ = 'LAST_CODE_TOGGLE_',
   /** Last checked toggle for Web Search per conversation ID */
   LAST_WEB_SEARCH_TOGGLE_ = 'LAST_WEB_SEARCH_TOGGLE_',
+  /** Last selected Keenable search profile per conversation ID */
+  LAST_WEB_SEARCH_PROFILE_ = 'LAST_WEB_SEARCH_PROFILE_',
+  /** Last per-conversation pro-mode toggle (false = snippet-only) */
+  LAST_WEB_SEARCH_PRO_MODE_ = 'LAST_WEB_SEARCH_PRO_MODE_',
+  /** Last per-conversation debug-mode toggle (true = render TTFT/latency/token footer) */
+  LAST_DEBUG_MODE_ = 'LAST_DEBUG_MODE_',
   /** Last checked toggle for File Search per conversation ID */
   LAST_FILE_SEARCH_TOGGLE_ = 'LAST_FILE_SEARCH_TOGGLE_',
   /** Last checked toggle for Artifacts per conversation ID */

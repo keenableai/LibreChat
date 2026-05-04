@@ -29,7 +29,7 @@ import type { TAskFunction, ExtendedFile } from '~/common';
 import useSetFilesToDelete from '~/hooks/Files/useSetFilesToDelete';
 import useGetSender from '~/hooks/Conversations/useGetSender';
 import { logger, createDualMessageContent } from '~/utils';
-import store, { useGetEphemeralAgent } from '~/store';
+import store, { useGetEphemeralAgent, useRecordMessageMetric } from '~/store';
 import { startupConfigKey } from '~/data-provider';
 import useUserKey from '~/hooks/Input/useUserKey';
 import { useAuthContext } from '~/hooks';
@@ -75,6 +75,7 @@ export default function useChatFunctions({
   const setIsSubmitting = useSetRecoilState(store.isSubmittingFamily(index));
   const setShowStopButton = useSetRecoilState(store.showStopButtonByIndex(index));
   const resetLatestMultiMessage = useResetRecoilState(store.latestMessageFamily(index + 1));
+  const recordMessageMetric = useRecordMessageMetric();
 
   const ask: TAskFunction = (
     {
@@ -342,6 +343,8 @@ export default function useChatFunctions({
     if (index === 0 && setLatestMessage) {
       setLatestMessage(initialResponse);
     }
+
+    recordMessageMetric(initialResponse.messageId, { submittedAt: Date.now() });
 
     setSubmission(submission);
     logger.dir('message_stream', submission, { depth: null });

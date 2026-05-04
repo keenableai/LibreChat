@@ -17,6 +17,8 @@ export type SearchApiKeyFormData = {
   jinaApiKey: string;
   jinaApiUrl: string;
   cohereApiKey: string;
+  // Keenable upstream-engine selector (sent as `profile` on POST /v1/search)
+  searchProfile: string;
 };
 
 const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
@@ -48,6 +50,8 @@ const useAuthSearchTool = (options?: { isEntityTool: boolean }) => {
 
   const installTool = useCallback(
     (data: SearchApiKeyFormData) => {
+      // searchProfile intentionally omitted: it's per-conversation state on
+      // the ephemeralAgent (see ApiKeyDialog), not per-user plugin auth.
       const auth = Object.entries({
         serperApiKey: data.serperApiKey,
         searxngInstanceUrl: data.searxngInstanceUrl,

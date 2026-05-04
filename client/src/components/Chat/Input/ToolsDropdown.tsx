@@ -8,6 +8,7 @@ import {
   Permissions,
   ArtifactModes,
   PermissionTypes,
+  SearchProviders,
   defaultAgentCapabilities,
 } from 'librechat-data-provider';
 import { useLocalize, useHasAccess, useAgentCapabilities } from '~/hooks';
@@ -78,11 +79,16 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
   const { isPinned: isFileSearchPinned, setIsPinned: setIsFileSearchPinned } = fileSearch ?? {};
   const { isPinned: isArtifactsPinned, setIsPinned: setIsArtifactsPinned } = artifacts ?? {};
 
+  const isKeenableProvider = startupConfig?.webSearch?.searchProvider === SearchProviders.KEENABLE;
+
   const showWebSearchSettings = useMemo(() => {
     const authTypes = webSearchAuthData?.authTypes ?? [];
     if (authTypes.length === 0) return true;
+    /** Keenable exposes a per-conversation searchProfile picker in the dialog,
+     *  so the gear should remain accessible even when all auth is system-defined. */
+    if (isKeenableProvider) return true;
     return !authTypes.every(([, authType]) => authType === AuthType.SYSTEM_DEFINED);
-  }, [webSearchAuthData?.authTypes]);
+  }, [webSearchAuthData?.authTypes, isKeenableProvider]);
 
   const showCodeSettings = useMemo(
     () => codeAuthData?.message !== AuthType.SYSTEM_DEFINED,
