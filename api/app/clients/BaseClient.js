@@ -616,15 +616,25 @@ class BaseClient {
        *  footer can read it. For agents this is a LangFuse-style cross-step
        *  sum (see AgentClient.getAggregateUsage); for non-agent clients it
        *  falls back to the single-call promptTokens estimate. */
-      const aggregateInput = usage != null ? Number(usage[this.inputTokensKey]) : 0;
-      responseMessage.promptTokens =
-        Number.isFinite(aggregateInput) && aggregateInput > 0 ? aggregateInput : promptTokens;
+      const aggregateInput = usage != null ? Number(usage[this.inputTokensKey]) : NaN;
+      const promptTokensNum = Number(promptTokens);
+      const pickedInput =
+        Number.isFinite(aggregateInput) && aggregateInput > 0
+          ? aggregateInput
+          : Number.isFinite(promptTokensNum) && promptTokensNum > 0
+            ? promptTokensNum
+            : 0;
+      responseMessage.promptTokens = pickedInput;
 
-      logger.debug('[BaseClient] Response token usage', {
+      logger.info('[BaseClient] Response token usage', {
         messageId: responseMessage.messageId,
         model: responseMessage.model,
+        aggregateInput,
         promptTokens,
+        pickedInput,
         completionTokens,
+        usageInputKey: this.inputTokensKey,
+        usagePresent: usage != null,
       });
     }
 

@@ -6,6 +6,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   QueryKeys,
   Constants,
+  StepEvents,
   EndpointURLs,
   ContentTypes,
   tPresetSchema,
@@ -228,15 +229,28 @@ export default function useEventHandlers({
   );
 
   /**
-   * Wrap stepHandler to record TTFT only (steps are tool/thinking events,
-   * never user-visible text — they don't bump TTFVT).
+   * Wrap stepHandler to record TTFT (any event) and TTFVT (only when the
+   * step carries visible text content — message deltas with type 'text').
+   * Tool calls and thinking bump TTFT only.
    */
   const stepHandler = useCallback(
     (...args: Parameters<typeof rawStepHandler>) => {
+      const stepEvent = args[0] as { event?: string; data?: unknown } | undefined;
       const submission = args[1] as EventSubmission | undefined;
       const responseMessageId = submission?.initialResponse?.messageId;
       if (responseMessageId) {
-        recordMessageMetric(responseMessageId, { firstTokenAt: Date.now() });
+        const now = Date.now();
+        recordMessageMetric(responseMessageId, { firstTokenAt: now });
+
+        if (stepEvent?.event === StepEvents.ON_MESSAGE_DELTA) {
+          const delta = stepEvent.data as { delta?: { content?: unknown } } | undefined;
+          const content = delta?.delta?.content;
+          const contentPart = Array.isArray(content) ? content[0] : content;
+          const partType = (contentPart as { type?: string } | undefined)?.type;
+          if (partType === ContentTypes.TEXT || partType === ContentTypes.TEXT_DELTA) {
+            recordMessageMetric(responseMessageId, { firstVisibleAt: now });
+          }
+        }
       }
       return rawStepHandler(...args);
     },
